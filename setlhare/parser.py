@@ -20,7 +20,7 @@ class StackTraceParser:
     """Parses terminal stderr/stdout for Python and CLI tracebacks."""
     
     PYTHON_FRAME_REGEX = re.compile(
-        r'File "(?P<filename>[^"]+)", line (?P<line>\d+), in (?P<function>\w+)\n\s*(?P<code>.+)'
+        r'File "(?P<filename>[^"]+)", line (?P<line>\d+), in (?P<function>[\w<>]+)\n\s*(?P<code>[^\n^~]+)'
     )
     PYTHON_EXC_REGEX = re.compile(r'^(?P<exc_type>[A-Za-z_]\w*Error|Exception):\s*(?P<message>.*)$', re.MULTILINE)
 
