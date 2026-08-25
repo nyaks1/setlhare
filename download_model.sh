@@ -22,7 +22,7 @@ if [ -f "$FILE" ]; then
 fi
 
 echo "Downloading $URL"
-wget -c --tries=3 --timeout=60 -O "$FILE" "$URL"
+wget -q --show-progress -c --tries=3 --timeout=60 -O "$FILE" "$URL"
 
 if is_valid_gguf "$FILE"; then
   echo "Download complete: $FILE ($(du -h "$FILE" | cut -f1))"
