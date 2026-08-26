@@ -86,6 +86,39 @@ setlhare --model model/qwen2.5-coder-3b-instruct-q4_k_m.gguf fix "python3 app.py
 
 ---
 
+## Shell hook (automatic fixes)
+
+Setlhare can sit in your terminal and jump in when any command crashes — no wrapping needed:
+
+```bash
+# One-time setup — add to your shell config
+eval "$(setlhare hook)"        # bash/zsh
+setlhare hook --fish | source   # fish
+setlhare hook --powershell | Invoke-Expression  # powershell
+```
+
+Then use your terminal normally. When a command fails with a recognizable stack trace, Setlhare shows a fix and asks to apply it:
+
+```bash
+$ python3 app.py
+Traceback (most recent call last):
+  File "app.py", line 5
+    return total / len(items)
+               ^^^^^
+NameError: name 'items' is not defined
+
+[Setlhare] Detected: NameError in app.py:5
+[Setlhare] Generating fix via llama.cpp (4 threads)...
+[Setlhare] Fix:
+-    return total / len(items)
++    return total / len(numbers)
+[Setlhare] Apply patch? [y/N]
+```
+
+Detection is based on real stack traces, not exit codes — `grep` returning 1 (no match) doesn't trigger it. See [docs/HOOK.md](docs/HOOK.md) for setup instructions and troubleshooting.
+
+---
+
 ## CLI options
 
 | Flag | Default | Description |
@@ -104,6 +137,7 @@ setlhare --model model/qwen2.5-coder-3b-instruct-q4_k_m.gguf fix "python3 app.py
 cli.py                    Entry point: runs your command, orchestrates repair
 setlhare/parser.py        Multi-language stack trace parser (Python / Java / JavaScript)
 setlhare/indexer.py       Extracts ±15 lines around the failure + enclosing function via AST
+setlhare/hook.py          Shell hook engine — auto-detects stack traces and offers fixes
 download_model.sh         Idempotent weight download with GGUF validation
 ```
 

@@ -202,9 +202,90 @@ def main() -> int:
         help="Seconds to wait for inference before giving up (default: 600)",
     )
 
+    hook_parser = subparsers.add_parser(
+        "hook",
+        help="Output shell hook code for automatic error detection",
+    )
+    hook_parser.add_argument(
+        "--fish", action="store_true",
+        help="Output fish shell hook instead of bash/zsh",
+    )
+    hook_parser.add_argument(
+        "--powershell", action="store_true",
+        help="Output PowerShell hook instead of bash/zsh",
+    )
+    hook_parser.add_argument(
+        "--auto-apply", action="store_true",
+        help="Set SETLHARE_AUTO_APPLY=1 in the hook (skip y/n prompt)",
+    )
+    hook_parser.add_argument(
+        "--uninstall", action="store_true",
+        help="Output commands to remove the hook from shell config",
+    )
+
+    hook_check_parser = subparsers.add_parser(
+        "hook-check",
+        help="Check stdin for stack traces (called by shell hook)",
+    )
+    hook_check_parser.add_argument(
+        "--auto-apply", action="store_true",
+        help="Apply patches without prompting",
+    )
+    hook_check_parser.add_argument(
+        "--model", type=str, default=None,
+        help=f"Path to a .gguf model (default: {os.path.basename(MODEL_PATH)})",
+    )
+    hook_check_parser.add_argument(
+        "--threads", type=int, default=4,
+        help="CPU threads for inference (default: 4)",
+    )
+    hook_check_parser.add_argument(
+        "--ctx-size", type=int, default=2048,
+        help="Context window size (default: 2048)",
+    )
+    hook_check_parser.add_argument(
+        "--n-predict", type=int, default=512,
+        help="Max tokens to generate (default: 512)",
+    )
+    hook_check_parser.add_argument(
+        "--timeout", type=int, default=600,
+        help="Seconds to wait for inference before giving up (default: 600)",
+    )
+
     args = parser.parse_args()
     if args.command == "fix":
         return run_fix(args.run_cmd, args)
+
+    if args.command == "hook":
+        from setlhare.hook import output_hook
+        shell = "powershell" if args.powershell else "fish" if args.fish else "bash"
+        hook_code = output_hook(shell)
+        if args.auto_apply:
+            if shell == "powershell":
+                hook_code += '\n$env:SETLHARE_AUTO_APPLY = "1"\n'
+            else:
+                hook_code += '\nexport SETLHARE_AUTO_APPLY=1\n'
+        if args.uninstall:
+            print("# To remove the Setlhare hook, delete these lines from your shell config:")
+            print("#   eval \"$(setlhare hook)\"          # bash/zsh")
+            print("#   setlhare hook --fish | source     # fish")
+            print("#   setlhare hook --powershell | Invoke-Expression  # powershell")
+            return 0
+        print(hook_code, end='')
+        return 0
+
+    if args.command == "hook-check":
+        from setlhare.hook import HookEngine
+        stderr_text = sys.stdin.read()
+        auto_apply = args.auto_apply or os.environ.get("SETLHARE_AUTO_APPLY") == "1"
+        engine = HookEngine(
+            model_path=args.model,
+            threads=args.threads,
+            ctx_size=args.ctx_size,
+            n_predict=args.n_predict,
+            timeout=args.timeout,
+        )
+        return engine.check(stderr_text, auto_apply=auto_apply)
 
     parser.print_help()
     return 1
