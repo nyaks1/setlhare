@@ -12,7 +12,14 @@ audit.json
 # Python
 __pycache__/
 *.pyc
+*.pyo
 .venv/
+*.egg-info/
+dist/
+build/
+
+# Docker
+.docker/
 
 # OS cruft
 .DS_Store
